@@ -1,9 +1,9 @@
 name: PlayerHolograms
-version: '1.0.1-SNAPSHOT'
+version: '1.0.3-SNAPSHOT'
 main: me.iangry.playerholograms.HologramGUI
-api-version: '1.20'
+api-version: '1.18'
 depend: [DecentHolograms]
-softdepend: [WorldGuard]
+softdepend: [WorldGuard, GriefPrevention, SuperiorSkyblock2, Towny, BentoBox, PlotSquared]
 commands:
   hologramgui:
     description: Opens the hologram GUI.

@@ -1,5 +1,7 @@
 package me.iangry.playerholograms;
 
+import java.io.File;
+import java.io.IOException;
 import me.iangry.playerholograms.commands.HologramCommand;
 import me.iangry.playerholograms.commands.PlayerHologramsPlugin;
 import me.iangry.playerholograms.gui.GUIListener;
@@ -8,44 +10,67 @@ import me.iangry.playerholograms.gui.HologramListGUI;
 import me.iangry.playerholograms.hologram.HologramManager;
 import me.iangry.playerholograms.utils.AnvilManager;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class HologramGUI extends JavaPlugin {
+   private static HologramGUI instance;
+   private HologramManager hologramManager;
+   private AnvilManager anvilManager;
+   private FileConfiguration hologramConfig;
 
-    private static HologramGUI instance;
-    private HologramManager hologramManager;
-    private AnvilManager anvilManager;
+   public void onEnable() {
+      instance = this;
+      this.saveDefaultConfig();
+      this.updateConfig();
+      this.loadHologramConfig();
+      this.hologramManager = new HologramManager(this.hologramConfig);
+      this.anvilManager = new AnvilManager();
+      this.getCommand("hologramgui").setExecutor(new HologramCommand(this));
+      this.getCommand("playerhologramsplugin").setExecutor(new PlayerHologramsPlugin(this));
+      PluginManager pm = Bukkit.getPluginManager();
+      pm.registerEvents(new GUIListener(this.hologramManager, this.anvilManager), this);
+      pm.registerEvents(new HologramListGUI(this.hologramManager, this.anvilManager), this);
+      pm.registerEvents(new HologramEditLineGUI(this.hologramManager, this.anvilManager), this);
+      this.getLogger().info("PlayerHolograms | Plugin Enabled!");
+   }
 
-    @Override
-    public void onEnable() {
-        instance = this;
-        saveDefaultConfig(); // Create config file if not exists
+   public void onDisable() {
+      this.hologramManager.saveHolograms();
+      this.saveHologramConfig();
+      this.saveConfig();
+      this.getLogger().info("PlayerHolograms | Plugin Disabled!");
+   }
 
-        hologramManager = new HologramManager(getConfig());
-        anvilManager = new AnvilManager();
+   public static HologramGUI getInstance() {
+      return instance;
+   }
 
-        getCommand("hologramgui").setExecutor(new HologramCommand(this));
-        getCommand("playerhologramsplugin").setExecutor(new PlayerHologramsPlugin(this));
+   public void updateConfig() {
+      FileConfiguration config = this.getConfig();
+      config.options().copyDefaults(true);
+      this.saveConfig();
+   }
 
+   private void loadHologramConfig() {
+      File hologramFile = new File(this.getDataFolder(), "holograms.yml");
+      if (!hologramFile.exists()) {
+         hologramFile.getParentFile().mkdirs();
+         this.saveResource("holograms.yml", false);
+      }
 
-        PluginManager pm = Bukkit.getPluginManager();
-        pm.registerEvents(new GUIListener(hologramManager, anvilManager), this);
-        pm.registerEvents(new HologramListGUI(hologramManager, anvilManager), this);
-        pm.registerEvents(new HologramEditLineGUI(hologramManager, anvilManager), this);
+      this.hologramConfig = YamlConfiguration.loadConfiguration(hologramFile);
+   }
 
+   private void saveHologramConfig() {
+      try {
+         this.hologramConfig.save(new File(this.getDataFolder(), "holograms.yml"));
+      } catch (IOException var2) {
+         this.getLogger().severe("Could not save holograms.yml!");
+         var2.printStackTrace();
+      }
 
-
-        getLogger().info("PlayerHolograms Plugin Enabled!");
-    }
-
-    @Override
-    public void onDisable() {
-        hologramManager.saveHolograms(); // Ensure holograms are saved on disable
-        getLogger().info("PlayerHolograms Plugin Disabled!");
-    }
-
-    public static HologramGUI getInstance() {
-        return instance;
-    }
+   }
 }
